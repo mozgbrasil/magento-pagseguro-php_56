@@ -1,0 +1,189 @@
+<?php
+/**
+ * Copyright © 2016 Mozg. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+?>
+<?php
+/** @var Mozg_Pagseguro_Block_Form_Boleto $this */
+$_code = $this->getMethodCode();
+?>
+<?php
+if(Mage::app()->getStore()->isAdmin()) {
+    $quote = Mage::getSingleton('adminhtml/session_quote')->getQuote();
+} else {
+    $quote = (Mage::getModel('checkout/type_onepage') !== false)? Mage::getModel('checkout/type_onepage')->getQuote(): Mage::getModel('checkout/session')->getQuote();
+}
+$grandTotal = $quote->getGrandTotal();
+//dump($grandTotal);
+?>
+<fieldset class="form-list">
+    <ul id="payment_form_<?php echo $_code ?>" style="display:none">
+        <li class="">
+            <input type="hidden" id="<?php echo $_code ?>_grand_total" name="payment[grand_total]" value="<?php echo $grandTotal ?>"/>
+            <input type="hidden" id="<?php echo $_code ?>_sender_hash" name="payment[sender_hash]" value=""/>
+            <span id="<?php echo $_code ?>_message"></span>
+        </li>
+        <li>
+            <div class="input-box">
+                <label for="<?php echo $_code ?>_social_security_number" class="required"><em>*</em><?php echo $this->__('Social Security Number') ?> </label><br />
+                <input type="text" title="<?php echo $this->__('Social Security Number') ?>" class="validate-ipayment-boleto-social-security-number required-entry input-text" id="<?php echo $_code ?>_social_security_number" name="payment[social_security_number]" value="<?php echo ($this->getUseTaxvat()) ? $this->getTaxvat() : "" ?>" />
+            </div>
+        </li>
+
+        <?php /*if(count($this->getBoletoAvailableTypes()) == 1) {?>
+        	<input id="<?php echo $_code ?>_boleto_type" type="hidden" name="payment[boleto_type]" value="<?php echo key($this->getBoletoAvailableTypes()); ?>" />
+        <?php } else {*/ ?>
+        <li>
+	        <label for="<?php echo $_code ?>_boleto_type" class="required"><em>*</em><?php echo $this->__('Boleto Type') ?></label>
+	        <div class="input-box">
+	            <select id="<?php echo $_code ?>_boleto_type" name="payment[boleto_type]" title="<?php echo $this->__('Boleto Type') ?>" class="required-entry">
+	                <option value=""><?php echo $this->__('--Please Select--') ?></option>
+	            <?php $_boletoType = $this->getInfoData('boleto_type') ?>
+	            <?php foreach ($this->getBoletoAvailableTypes() as $_typeCode => $_typeName): ?>
+	                <option value="<?php echo $_typeCode ?>"<?php if($_typeCode==$_boletoType): ?> selected="selected"<?php endif ?>><?php echo $_typeName ?></option>
+	            <?php endforeach ?>
+	            </select>
+	        </div>
+	    </li>
+	    <?php //} ?>
+
+        <li>
+            <div class="input-box">
+                <label for="<?php echo $_code ?>_firstname" class="required"><em>*</em><?php echo $this->__('Firstname') ?> </label><br />
+                <input
+                	type="text" id="<?php echo $_code ?>_firstname" name="payment[firstname]"
+                	title="<?php echo $this->__('Firstname') ?>"
+                	class="validate-ipayment-boleto-firstname required-entry input-text"
+                	value="<?php echo $this->getFirstname() ?>" />
+            </div>
+        </li>
+         <li>
+            <div class="input-box">
+                <label for="<?php echo $_code ?>_lastname" class="required"><em>*</em><?php echo $this->__('Lastname') ?> </label><br />
+                <input
+	                type="text" id="<?php echo $_code ?>_lastname" name="payment[lastname]"
+	                title="<?php echo $this->__('Lastname') ?>"
+	                class="validate-ipayment-boleto-lastname required-entry input-text"
+	                value="<?php echo $this->getLastname() ?>" />
+            </div>
+        </li>
+    </ul>
+</fieldset>
+<div>
+</div>
+
+<script type="text/javascript">
+    <?php echo $_code ?>_method_code = '<?php echo $_code ?>';
+    console.log('<?php echo $_code ?>');
+</script>
+
+<script type="text/javascript">
+
+if($('<?php echo $_code ?>_social_security_number')){
+    function fnc_<?php echo $_code ?>_focusEvent(event) {
+
+        console.log(arguments.callee.name);
+
+        var element = event.element();
+    }
+
+    function fnc_<?php echo $_code ?>_changeEvent(event) {
+
+        console.log(arguments.callee.name);
+
+        var element = event.element();
+    }
+
+    function fnc_<?php echo $_code ?>_keyupEvent(event) {
+
+        console.log(arguments.callee.name);
+
+        //console.log(arguments);
+        //console.log(event);
+
+        var element = event.element();
+
+        //console.log(element);
+
+        var elementValue = element.value;
+
+        console.log(elementValue);
+
+        var _fnc_<?php echo $_code ?>_Mascara = fnc_<?php echo $_code ?>_Mascara(elementValue);
+
+        console.log(_fnc_<?php echo $_code ?>_Mascara);
+
+        element.value = _fnc_<?php echo $_code ?>_Mascara;
+
+    }
+
+    function fnc_<?php echo $_code ?>_Mascara(v) {
+
+        console.log(arguments.callee.name);
+
+        v = v.replace(/\D/g, "");
+        if (v.length <= 11) {
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+
+            $$('label[for="<?php echo $_code ?>_social_security_number"]').first().update('<em>*</em>CPF');
+
+        } else {
+            v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+            v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+            v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+            v = v.replace(/(\d{4})(\d)/, "$1-$2");
+
+            $$('label[for="<?php echo $_code ?>_social_security_number"]').first().update('<em>*</em>CNPJ');
+        }
+        return v;
+    }
+
+    $('<?php echo $_code ?>_social_security_number').addClassName("validate-cpf-cnpj");
+
+    $('<?php echo $_code ?>_social_security_number').observe('focus', fnc_<?php echo $_code ?>_focusEvent);
+
+    $('<?php echo $_code ?>_social_security_number').observe('change', fnc_<?php echo $_code ?>_changeEvent);
+
+    $('<?php echo $_code ?>_social_security_number').observe('keyup', fnc_<?php echo $_code ?>_keyupEvent);
+}
+
+</script>
+
+<script type="text/javascript">
+
+    //
+
+    var <?php echo $_code ?>_element = $('<?php echo $_code ?>_social_security_number');
+    var eventName = 'dblclick';
+    var <?php echo $_code ?>_handler = function (event) {
+        console.log(arguments.callee.name);
+        console.log(arguments);
+        Mozg.Payment.boletoTefEasterEgg(event, <?php echo $_code ?>_method_code);
+    };
+
+    Event.observe(<?php echo $_code ?>_element, eventName, <?php echo $_code ?>_handler);
+
+    //
+
+</script>
+
+<script type="text/javascript">
+
+    //
+
+    var variableObject = Mozg.Pagseguro.variableObject;
+    console.log(variableObject);
+
+    //
+
+    if(variableObject.getPaymentMethods){
+        Mozg.Pagseguro.observerFieldsBoleto();
+        Mozg.Pagseguro.showBrands();
+    }
+
+    //
+
+</script>
