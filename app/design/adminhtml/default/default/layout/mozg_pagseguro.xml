@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright © 2016 Mozg. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+-->
+<layout>
+
+    <adminhtml_sales_order_create_index>
+        <reference name="head">
+            <action method="addJs">
+                <script>mozg_pagseguro/script.js</script>
+                <params><![CDATA[name=""]]></params>
+            </action>
+        </reference>
+    </adminhtml_sales_order_create_index>
+
+    <!-- /index.php/admin/mozg_pagseguro_event_queue/ -->
+
+    <adminhtml_mozg_pagseguro_event_queue_index>
+        <reference name="content">
+            <block type="mozg_pagseguro/adminhtml_mozg_pagseguro_event_queue" name="mozg.pagseguro.event.queue.grid.index"/>
+        </reference>
+    </adminhtml_mozg_pagseguro_event_queue_index>
+
+    <adminhtml_mozg_pagseguro_event_queue_grid>
+        <remove name="root"/>
+        <block type="mozg_pagseguro/adminhtml_mozg_pagseguro_event_queue_grid" name="mozg.pagseguro.event.queue.grid" output="toHtml"/>
+    </adminhtml_mozg_pagseguro_event_queue_grid>
+
+    <!-- ? -->
+
+</layout>

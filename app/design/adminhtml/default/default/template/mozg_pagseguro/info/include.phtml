@@ -1,0 +1,323 @@
+<?php
+/**
+ * Copyright © 2016 Mozg. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+?>
+
+<?php
+
+/*
+dump(get_class($this));
+dump($this->getData());
+dump($this->getMethod());
+dump($this->getMethod()->getData());
+dump($this->getInfo());
+dump($this->getInfo()->getData());
+dump(get_class_methods(get_class($this)));
+//dump(get_class_methods(get_class($this->getInfo())));
+*/
+
+?>
+
+<?php
+$info = $this->getInfo();
+?>
+
+<?php echo $this->htmlEscape($this->getMethod()->getTitle()) ?><br/>
+
+<?php if ($info): ?>
+
+    <?php if ($info->getMozgPspReference() == ''): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Payment has not been processed yet.') ?> <br/>
+    <?php else :?>
+
+        <?php
+
+        $pspReference = $this->htmlEscape($info->getMozgPspReference());
+
+        $contains_pspReference = (strpos($pspReference, '-') !== false);
+
+        if ( $contains_pspReference ) {
+
+            //
+
+            $order = $this->getMethod()->getInfoInstance()->getOrder();
+
+            $realOrderId = $order->getRealOrderId();
+            $incrementId = $order->getIncrementId();
+
+            $storeId = $this->getMethod()->getInfoInstance()->getOrder()->getStoreId();
+
+            //
+
+            if (Mage::app()->getStore()->isAdmin()){
+
+            $url = Mage::helper('adminhtml')->getUrl('adminhtml/Pagseguro/consulta/', array('incrementId' => $incrementId, 'pspReference' => $pspReference) );
+            $link = "javascript:openPopupsMozg('$url', 'WinXilinus', 'Link', 'PagSeguro', 'pagseguro');";
+            $link = "$url";
+
+            echo Mage::helper('mozg_pagseguro')->__('PagSeguro PSP Reference: <a href="%s" target="_blank">%s</a>', $link, $pspReference) . ' <br/>';
+
+            }
+
+            //
+
+            $environment = (Mage::helper('mozg_pagseguro')->getConfigDataDemoMode($storeId) == 'Y') ? 'sandbox' : 'production';
+            $config_email = Mage::helper('mozg_pagseguro')->getConfigDataEmail($storeId);
+            $config_token = Mage::helper('mozg_pagseguro')->getConfigDataToken($storeId);
+            $path_log = Mage::getBaseDir('log') . '/PagSeguro.log';
+
+            // searchTransactionBy
+
+            // Search\Code
+
+            $pagseguro_requests = new \PagSeguro\Services\Transactions\Search\Code();
+
+            $reference = $pspReference;
+
+            //dump($reference);
+
+            // Lib Init
+
+            if (!defined('PS_BASEPATH')) {
+                $pagseguro_library = new \PagSeguro\Library();
+                $pagseguro_library::initialize();
+                $pagseguro_library::cmsVersion()->setName("Magento")->setRelease(Mage::getVersion());
+                $pagseguro_library::moduleVersion()->setName("Mozg_Pagseguro")->setRelease("1.0.0");
+            }
+
+            // configure the library dynamically:
+            $pagseguro_configure = new \PagSeguro\Configuration\Configure();
+            $pagseguro_configure::setEnvironment($environment);//production or sandbox
+            $pagseguro_configure::setAccountCredentials(
+                $config_email,
+                $config_token
+            );
+            $pagseguro_configure::setCharset('UTF-8');// UTF-8 or ISO-8859-1
+            $pagseguro_configure::setLog(true, $path_log);
+
+            try {
+
+                // # ApplicationCredentials(
+
+                //$pagseguro_requests = new \PagSeguro\Services\Application\Search\Reference();
+                //$credentials = $pagseguro_configure::getApplicationCredentials();
+
+                // # AccountCredentials
+
+                $credentials = $pagseguro_configure::getAccountCredentials();
+
+                //
+
+                $response = $pagseguro_requests->search(
+                    $credentials,
+                    $reference
+                );
+
+                //dump($response);
+
+
+                /*dump($response);
+                dump($getTransactions);
+                dump(get_class_methods(get_class($response)));*/
+
+                $returnCodes = new \Mozg\Framework\PagSeguro\ReturnCodes();
+
+                $getTransactionType = $returnCodes->transaction_type;
+                $getTransactionStatus = $returnCodes->transaction_status;
+
+                /*dump($returnCodes);
+                dump($getTransactionType);*/
+
+                $payment_status = $response->getStatus();
+                $color = ($payment_status == '3' || $payment_status == '4') ? 'green' : 'red';
+
+                $message_status = Mage::helper('mozg_pagseguro')->__($getTransactionStatus[$payment_status]);
+
+                $authResult = '<font color="'.$color.'"><b>' . $message_status . '</b></font>';
+
+                echo Mage::helper('mozg_pagseguro')->__('Transaction Status: %s', $authResult) . ' <br/>';
+
+            } catch (Exception $e) {
+                $message_status = $e->getMessage();
+                $color = 'red';
+                $authResult = '<font color="'.$color.'"><b>' . $message_status . '</b></font>';
+                echo Mage::helper('mozg_pagseguro')->__('Exception: %s', $authResult) . ' <br/>';
+            }
+
+        }
+
+        //
+
+        ?>
+
+    <?php endif;?>
+
+    <?php
+
+    // New Way
+    if($this->getInfo()->getAdditionalInformation('social_security_number')) {
+        $additionalInformation = [
+            'social_security_number' => $this->getInfo()->getAdditionalInformation('social_security_number'),
+            'firstname' => $this->getInfo()->getAdditionalInformation('firstname'),
+            'lastname' => $this->getInfo()->getAdditionalInformation('lastname'),
+            'dob' => $this->getInfo()->getAdditionalInformation('dob'),
+        ];
+    } else {
+        // older versions saved it into the PoNumber to be backwards compatible leave this in
+        $additionalInformation = unserialize($this->getInfo()->getPoNumber());
+    }
+
+    $documento = $additionalInformation['social_security_number'];
+
+    $tipo_documento = 'CPF';
+    $mozg_util = new \Mozg\Framework\Util();
+    if($mozg_util->validaCNPJ($documento)) {
+        $tipo_documento = 'CNPJ';
+    }
+
+    ?>
+
+    <?php if ($this->getInfo()->getMethod() == 'mozg_pagseguro_api_cc'): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Social Security Number: %s', $this->htmlEscape($additionalInformation['social_security_number'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Date of Birth: %s', $this->htmlEscape($additionalInformation['dob'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Name on the Card: %s', $this->htmlEscape($this->getInfo()->getCcOwner())) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Credit Card Type: %s', $this->htmlEscape($this->getCcTypeName())) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Credit Card Number: xxxx-%s', $this->htmlEscape($this->getInfo()->getCcLast4())) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Expiration Date: %s/%s', $this->htmlEscape($this->getCcExpMonth()), $this->htmlEscape($this->getInfo()->getCcExpYear())) ?><br/>
+        <?php if($this->htmlEscape($this->getInfo()->getAdditionalInformation('number_of_installments')) != "" && $this->htmlEscape($this->getInfo()->getAdditionalInformation('number_of_installments')) > 1): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Number of installments: %s', $this->htmlEscape($this->getInfo()->getAdditionalInformation('number_of_installments'))) ?><br/>
+        <?php endif; ?>
+        <?php
+
+        $var = $this->htmlEscape($this->getInfo()->getMozgAcquirerReference());
+
+        if( isset($responseData) && ($info->getMozgPspReference() != '') && empty($var) ):
+
+        ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Tid:: %s', $this->htmlEscape($responseData['Payment']['Tid'])) ?><br/>
+        <?php endif; ?>
+    <?php endif; ?>
+
+
+
+    <?php if ($this->getInfo()->getMethod() == 'mozg_pagseguro_api_dc'): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Name on the Card: %s', $this->htmlEscape($this->getInfo()->getCcOwner())) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Credit Card Type: %s', $this->htmlEscape($this->getCcTypeName())) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Credit Card Number: xxxx-%s', $this->htmlEscape($this->getInfo()->getCcLast4())) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Expiration Date: %s/%s', $this->htmlEscape($this->getCcExpMonth()), $this->htmlEscape($this->getInfo()->getCcExpYear())) ?><br/>
+        <?php
+
+        $var = $this->htmlEscape($this->getInfo()->getMozgAcquirerReference());
+
+        if( ($info->getMozgPspReference() != '') && empty($var) ):
+
+        ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Tid:: %s', $this->htmlEscape($responseData['Payment']['Tid'])) ?><br/>
+        <?php endif; ?>
+    <?php endif; ?>
+
+
+
+    <?php if ($this->getInfo()->getMethod() == 'mozg_pagseguro_api_boleto'): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Social Security Number: %s', $this->htmlEscape($additionalInformation['social_security_number'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Firstname: %s', $this->htmlEscape($additionalInformation['firstname'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Lastname: %s', $this->htmlEscape($additionalInformation['lastname'])) ?><br/>
+
+        <?php if($this->getInfo()->getOrder() != null): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Boleto PDF: <a target="_blank" href="%s">Download</a>', $this->getInfo()->getOrder()->getMozgPaymentUrl()) ?><br/>
+        <?php endif;?>
+
+        <?php if( isset($responseData) ): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Instructions: %s', $this->__($responseData['Payment']['Instructions'])) ?><br/>
+        <?php endif;?>
+    <?php endif; ?>
+
+
+
+    <?php if ($this->getInfo()->getMethod() == 'mozg_pagseguro_api_eletronictransfer'): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Social Security Number: %s', $this->htmlEscape($additionalInformation['social_security_number'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Firstname: %s', $this->htmlEscape($additionalInformation['firstname'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Lastname: %s', $this->htmlEscape($additionalInformation['lastname'])) ?><br/>
+
+        <?php if($this->getInfo()->getOrder() != null): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('EletronicTransfer PDF: <a target="_blank" href="%s">Download</a>', $this->getInfo()->getOrder()->getMozgPaymentUrl()) ?><br/>
+        <?php endif;?>
+    <?php endif; ?>
+
+
+
+    <?php if ($this->getInfo()->getMethod() == 'mozg_pagseguro_api_padrao'): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Social Security Number: %s', $this->htmlEscape($additionalInformation['social_security_number'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Firstname: %s', $this->htmlEscape($additionalInformation['firstname'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Lastname: %s', $this->htmlEscape($additionalInformation['lastname'])) ?><br/>
+    
+        <?php if($this->getInfo()->getOrder() != null): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Payment URL: <a target="_blank" href="%s">Download</a>', $this->getInfo()->getOrder()->getMozgPaymentUrl()) ?><br/>
+        <?php endif;?>
+    <?php endif; ?>
+
+
+
+    <?php if ($this->getInfo()->getMethod() == 'mozg_pagseguro_api_lightbox'): ?>
+        <?php echo Mage::helper('mozg_pagseguro')->__('Social Security Number: %s', $this->htmlEscape($additionalInformation['social_security_number'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Firstname: %s', $this->htmlEscape($additionalInformation['firstname'])) ?><br/>
+        <?php echo Mage::helper('mozg_pagseguro')->__($tipo_documento.'_Lastname: %s', $this->htmlEscape($additionalInformation['lastname'])) ?><br/>
+
+        <?php if($this->getInfo()->getOrder() != null): ?>
+
+            <?php
+            $storeId = $this->getMethod()->getInfoInstance()->getOrder()->getStoreId();
+            ?>
+
+            <?php if (Mage::helper('mozg_pagseguro')->getConfigDataDemoMode($storeId) == 'Y') : ?>
+                <!--Para integração em ambiente de testes no Sandbox use este link-->
+                    <script
+                        type="text/javascript"
+                        src="https://stc.sandbox.pagseguro.uol.com.br/pagseguro/api/v2/checkout/pagseguro.lightbox.js">
+                    </script>
+            <?php else : ?>
+            <!--Para integração em ambiente de produção use este link-->
+                    <script
+                        type="text/javascript"
+                        src="https://stc.pagseguro.uol.com.br/pagseguro/api/v2/checkout/pagseguro.lightbox.js">
+                    </script>
+            <?php endif; ?>
+
+            <?php
+
+            $paymentUrl = $this->getInfo()->getOrder()->getMozgPaymentUrl();
+
+            $action = Mage::helper('mozg_pagseguro')->__("javascript:PagSeguroLightbox('%s');", $paymentUrl);
+
+            echo Mage::helper('mozg_pagseguro')->__('Payment URL: <a href="#" onclick="%s">click here</a>', $action);
+
+            ?><br/>
+        <?php endif;?>
+    <?php endif; ?>
+
+
+
+    <?php if (Mage::app()->getStore()->isAdmin()): ?>
+        <?php if($this->htmlEscape($this->getInfo()->getMozgAvsResult()) != ""): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Avs result: %s', $this->htmlEscape($this->getInfo()->getMozgAvsResult())) ?><br/>
+        <?php endif; ?>
+        <?php if($this->htmlEscape($this->getInfo()->getMozgCvcResult()) != ""): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Cvc result: %s', $this->htmlEscape($this->getInfo()->getMozgCvcResult())) ?><br/>
+        <?php endif; ?>
+        <?php if($this->htmlEscape($this->getInfo()->getMozgTotalFraudScore()) != ""): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Total fraud score: %s', $this->htmlEscape($this->getInfo()->getMozgTotalFraudScore())) ?><br/>
+        <?php endif; ?>
+        <?php if($this->htmlEscape($this->getInfo()->getMozgRefusalReasonRaw()) != ""): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Raw acquirer response: %s', $this->htmlEscape($this->getInfo()->getMozgRefusalReasonRaw())) ?><br/>
+        <?php endif; ?>
+        <?php if($this->htmlEscape($this->getInfo()->getMozgAuthCode()) != ""): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Authorisation code: %s', $this->htmlEscape($this->getInfo()->getMozgAuthCode())) ?><br/>
+        <?php endif; ?>
+        <?php if($this->htmlEscape($this->getInfo()->getMozgAcquirerReference()) != ""): ?>
+            <?php echo Mage::helper('mozg_pagseguro')->__('Acquirer reference: %s', $this->htmlEscape($this->getInfo()->getMozgAcquirerReference())) ?><br/>
+        <?php endif; ?>
+    <?php endif; ?>
+
+<?php endif;?>

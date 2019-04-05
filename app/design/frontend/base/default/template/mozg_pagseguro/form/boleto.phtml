@@ -1,0 +1,35 @@
+<?php
+/**
+ * Copyright © 2018 Mozg. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+?>
+
+<?php
+
+$applicationBaseDir = Mage::getBaseDir('base');
+$pathFile = $applicationBaseDir . '/app/design/frontend/base/default/template/mozg_payment/form/include_boleto_tef.phtml';
+
+//dump($pathFile);
+
+include $pathFile;
+
+?>
+
+<script type="text/javascript">
+
+    //
+
+    var variableObject = Mozg.Pagseguro.variableObject;
+    console.log(variableObject);
+
+    //
+
+    if(variableObject.getPaymentMethods){
+        Mozg.Pagseguro.observerFieldsBoleto();
+        Mozg.Pagseguro.showBrands();
+    }
+
+    //
+
+</script>

@@ -1,0 +1,119 @@
+<?php
+/**
+ * Copyright © 2016 Mozg. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+?>
+
+<?php
+/*
+dump(get_class($this));
+dump(get_class_methods(get_class($this)));
+*/
+?>
+
+<!-- PagSeguro_Transparente -->
+
+<?php
+
+$enabled = false;
+
+$isActiveCc = (bool)Mage::getStoreConfigFlag('payment/mozg_pagseguro_api_cc/active');
+$isActiveBoleto = (bool)Mage::getStoreConfigFlag('payment/mozg_pagseguro_api_boleto/active');
+$isActiveEletronictransfer = (bool)Mage::getStoreConfigFlag('payment/mozg_pagseguro_api_eletronictransfer/active');
+
+if ($isActiveCc || $isActiveBoleto || $isActiveEletronictransfer){
+    $enabled = true;
+}
+
+//dump($enabled);
+
+?>
+
+<?php if ($enabled): ?>
+
+    <?php
+
+    $enabled = true;
+
+    $pagseguro_session_id = Mage::helper('mozg_pagseguro')->getPagSeguroSessionId();
+
+    //dump(strlen($pagseguro_session_id));
+
+    if (strlen($pagseguro_session_id) > 100){
+        $enabled = false;
+        dump($pagseguro_session_id);
+    }
+
+    //dump($enabled);
+
+    ?>
+
+    <?php if ($enabled): ?>
+
+        <?php
+
+        $storeId = Mage::app()->getStore()->getStoreId();
+
+        if (Mage::helper('mozg_pagseguro')->getConfigDataDemoMode($storeId) == 'Y') :
+
+        ?>
+            <!--Para integração em ambiente de testes no Sandbox use este link-->
+            <script type="text/javascript" src="https://stc.sandbox.pagseguro.uol.com.br/pagseguro/api/v2/checkout/pagseguro.directpayment.js"></script>
+        <?php else : ?>
+            <!--Para integração em ambiente de produção use este link-->
+            <script type="text/javascript" src="https://stc.pagseguro.uol.com.br/pagseguro/api/v2/checkout/pagseguro.directpayment.js"></script>
+        <?php endif; ?>
+
+        <?php
+
+        $secure = Mage::app()->getStore()->isCurrentlySecure();
+
+        $base_url = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_LINK, $secure);
+
+        $getSubtotal = Mage::helper('mozg_pagseguro')->getSubtotal();
+
+        $config = array(
+            'amount' => $getSubtotal,
+            'pagseguro_session_id' => $pagseguro_session_id,
+            'base_url' => $base_url,
+            'active_methods' => array(
+                'cc' => '',
+                'boleto' => '',
+                'tef' => '',
+            ),
+            'flag' => '42x20',
+            'debug' => true,
+            'show_total' => true,
+            'force_installments_selection' => true,
+        );
+        $json = json_encode($config);
+
+        ?>
+
+        <script type="text/javascript">
+
+        //
+
+        Mozg.Pagseguro.initialize(<?php echo $json; ?>);
+
+        Event.observe(window, 'load', function() {
+
+            console.log('Mozg.Pagseguro: ' + Mozg.Pagseguro._version);
+            Mozg.Pagseguro.loader();
+
+        });
+
+        //
+
+        </script>
+
+    <?php endif; ?>
+
+<?php endif; ?>
+
+<!-- / PagSeguro_Transparente -->
+
+<?php
+/**/
+?>

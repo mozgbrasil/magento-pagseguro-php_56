@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2016 Mozg. All rights reserved.
+ * See LICENSE.txt for license details.
+ */
+-->
+<layout version="0.1.0">
+
+    <!-- For the Native Checkout -->
+
+    <handle_mozg_pagseguro_checkout>
+        <reference name="after_body_start">
+            <block type="core/template" name="mozg_pagseguro_transparente" template="mozg_pagseguro/checkout/onepage/pagseguro_transparente.phtml" />
+        </reference>
+    </handle_mozg_pagseguro_checkout>
+
+    <checkout_onepage_index>
+        <reference name="head">
+            <action method="addJs">
+                <script>mozg_pagseguro/script.js</script>
+                <params><![CDATA[name=""]]></params>
+            </action>
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+        <update handle="handle_mozg_pagseguro_checkout"/>
+    </checkout_onepage_index>
+
+    <checkout_multishipping_billing>
+        <reference name="head">
+            <action method="addJs">
+                <script>mozg_pagseguro/script.js</script>
+                <params><![CDATA[name=""]]></params>
+            </action>
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+        <update handle="handle_mozg_pagseguro_checkout"/>
+    </checkout_multishipping_billing>
+
+    <!-- For the "Ideasa_IdeCheckoutvm" module -->
+    <idecheckoutvm_index_index>
+        <reference name="head">
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+        <update handle="handle_mozg_pagseguro_checkout"/>
+    </idecheckoutvm_index_index>
+
+    <!-- For the "Idev_OneStepCheckout, Inovarti_Onestepcheckout" module -->
+    <onestepcheckout_index_index>
+        <reference name="head">
+            <action method="addJs">
+                <script>mozg_pagseguro/script.js</script>
+                <params><![CDATA[name=""]]></params>
+            </action>
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+        <update handle="handle_mozg_pagseguro_checkout"/>
+    </onestepcheckout_index_index>
+
+    <!-- For the "Idev_OneStepCheckout, Inovarti_Onestepcheckout" module -->
+    <opc_index_index>
+        <reference name="head">
+            <action method="addJs">
+                <script>mozg_pagseguro/script.js</script>
+                <params><![CDATA[name=""]]></params>
+            </action>
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+        <update handle="handle_mozg_pagseguro_checkout"/>
+    </opc_index_index>
+
+    <!-- For the "DeivisonArthur_OnepageCheckout" module -->
+    <onepagecheckout_index_index>
+        <reference name="head">
+            <action method="addJs">
+                <script>mozg_pagseguro/script.js</script>
+                <params><![CDATA[name=""]]></params>
+            </action>
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+    </onepagecheckout_index_index>
+
+    <!-- Checkout Success -->
+    <handle_mozg_pagseguro_checkout_success>
+        <reference name="head">
+            <action method="addCss">
+                <stylesheet>css/mozg_pagseguro/style.css</stylesheet>
+            </action>
+        </reference>
+        <!--<reference name="content">
+            <block type="mozg_pagseguro/checkout_onepage_success" name="mozg.pagseguro.checkout.success" before="mozg.sales.order.info.progress" template="mozg_pagseguro/checkout/onepage/success.phtml"/>
+        </reference>-->
+    </handle_mozg_pagseguro_checkout_success>
+
+    <checkout_onepage_success>
+        <update handle="handle_mozg_pagseguro_checkout_success"/>
+    </checkout_onepage_success>
+
+    <checkout_multishipping_success>
+        <update handle="handle_mozg_pagseguro_checkout_success"/>
+    </checkout_multishipping_success>
+
+    <onestepcheckout_index_success>
+        <update handle="handle_mozg_pagseguro_checkout_success"/>
+    </onestepcheckout_index_success>
+
+    <!-- / -->
+
+</layout>
